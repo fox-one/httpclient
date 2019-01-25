@@ -47,17 +47,18 @@ func (r *Request) Auth(auth Authenticator) *Request {
 }
 
 type Result struct {
-	code int
-	data []byte
-	err  error
+	status     string
+	statusCode int
+	data       []byte
+	err        error
 }
 
 func (r *Result) Err() error {
 	return r.err
 }
 
-func (r *Result) StatusCode() int {
-	return r.code
+func (r *Result) Status() (int, string) {
+	return r.statusCode, r.status
 }
 
 func (r *Result) Bytes() ([]byte, error) {
@@ -65,7 +66,7 @@ func (r *Result) Bytes() ([]byte, error) {
 }
 
 func (r *Result) Reader() (io.Reader, error) {
-	return bytes.NewBuffer(r.data), r.err
+	return bytes.NewReader(r.data), r.err
 }
 
 func (r *Request) Do(ctx context.Context) *Result {
@@ -105,8 +106,8 @@ func (r *Request) Do(ctx context.Context) *Result {
 	request.Header = r.headers
 	request = request.WithContext(ctx)
 	resp, err := r.client.Client().Do(request)
+	result.statusCode, result.status = resp.StatusCode, resp.Status
 
-	result.code = resp.StatusCode
 	if err != nil {
 		result.err = err
 		return result
