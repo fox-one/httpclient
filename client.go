@@ -10,7 +10,7 @@ type Client struct {
 	base   *url.URL
 	client *http.Client
 
-	Director func(*Request)
+	OnRequest func(req *Request, method, uri string)
 }
 
 func parseAPIBase(apiBase string) (*url.URL, error) {
@@ -71,8 +71,9 @@ func NewClient(apiBase string) *Client {
 
 func (c *Client) Group(group string) *Client {
 	return &Client{
-		base:   joinGroup(c.base, group),
-		client: c.client,
+		base:      joinGroup(c.base, group),
+		client:    c.client,
+		OnRequest: c.OnRequest,
 	}
 }
 
@@ -97,8 +98,8 @@ func (c *Client) req(method, uri string) *Request {
 		headers: http.Header{},
 	}
 
-	if c.Director != nil {
-		c.Director(req)
+	if c.OnRequest != nil {
+		c.OnRequest(req, method, uri)
 	}
 
 	return req

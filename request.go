@@ -11,6 +11,10 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
+type AuthPreparer interface {
+	PrepareAuth(req *Request)
+}
+
 type Authenticator interface {
 	Auth(req *Request, method, uri string, body []byte)
 }
@@ -72,8 +76,13 @@ func (r *Result) Reader() (io.Reader, error) {
 func (r *Request) Do(ctx context.Context) *Result {
 	u := joinGroup(r.client.base, r.uri)
 
-	var body []byte
+	if r.auth != nil {
+		if preparer, ok := r.auth.(AuthPreparer); ok {
+			preparer.PrepareAuth(r)
+		}
+	}
 
+	var body []byte
 	switch r.method {
 	case http.MethodPut, http.MethodPost:
 		body, _ = jsoniter.Marshal(r.params)
