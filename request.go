@@ -46,7 +46,29 @@ func (r *Request) Auth(auth Authenticator) *Request {
 	return r
 }
 
-func (r *Request) Do(ctx context.Context) (int, io.Reader, error) {
+type Result struct {
+	code int
+	data []byte
+	err  error
+}
+
+func (r *Result) Err() error {
+	return r.err
+}
+
+func (r *Result) StatusCode() int {
+	return r.code
+}
+
+func (r *Result) Bytes() ([]byte, error) {
+	return r.data, r.err
+}
+
+func (r *Result) Reader() (io.Reader, error) {
+	return bytes.NewBuffer(r.data), r.err
+}
+
+func (r *Request) Do(ctx context.Context) *Result {
 	u := joinGroup(r.client.base, r.uri)
 
 	var body []byte
@@ -72,20 +94,25 @@ func (r *Request) Do(ctx context.Context) (int, io.Reader, error) {
 		r.auth.Auth(r, r.method, uri, body)
 	}
 
+	result := &Result{}
+
 	request, err := http.NewRequest(r.method, u.String(), bytes.NewReader(body))
 	if err != nil {
-		return 0, nil, err
+		result.err = err
+		return result
 	}
 
 	request.Header = r.headers
 	request = request.WithContext(ctx)
 	resp, err := r.client.Client().Do(request)
+
+	result.code = resp.StatusCode
 	if err != nil {
-		return resp.StatusCode, nil, err
+		result.err = err
+		return result
 	}
 
 	defer resp.Body.Close()
-	data, err := ioutil.ReadAll(resp.Body)
-
-	return resp.StatusCode, bytes.NewReader(data), err
+	result.data, result.err = ioutil.ReadAll(resp.Body)
+	return result
 }
