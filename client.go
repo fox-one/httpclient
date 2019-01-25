@@ -57,14 +57,10 @@ func joinGroup(base *url.URL, group string) *url.URL {
 	return u
 }
 
-func NewClient(apiBase string, groups ...string) *Client {
+func NewClient(apiBase string) *Client {
 	u, err := parseAPIBase(apiBase)
 	if err != nil {
 		panic(err)
-	}
-
-	for _, group := range groups {
-		u = joinGroup(u, group)
 	}
 
 	return &Client{
