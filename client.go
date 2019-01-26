@@ -20,7 +20,7 @@ func parseAPIBase(apiBase string) (*url.URL, error) {
 	}
 
 	if u.Scheme == "" {
-		u.Scheme = "https"
+		panic("api base has no scheme")
 	}
 
 	return u, nil

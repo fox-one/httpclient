@@ -75,7 +75,6 @@ func (r *Result) Reader() (io.Reader, error) {
 
 func (r *Request) Do(ctx context.Context) *Result {
 	u := joinGroup(r.client.base, r.uri)
-
 	if r.auth != nil {
 		if preparer, ok := r.auth.(AuthPreparer); ok {
 			preparer.PrepareAuth(r)
