@@ -19,6 +19,10 @@ type Authenticator interface {
 	Auth(req *Request, method, uri string, body []byte)
 }
 
+const (
+	bodyObjectParamkey = "_httpclient_body_object"
+)
+
 type Request struct {
 	client *Client
 
@@ -43,6 +47,10 @@ func (r *Request) P(key string, value interface{}) *Request {
 	}
 
 	return r
+}
+
+func (r *Request) Body(b interface{}) *Request {
+	return r.P(bodyObjectParamkey, b)
 }
 
 func (r *Request) Auth(auth Authenticator) *Request {
@@ -84,10 +92,18 @@ func (r *Request) Do(ctx context.Context) *Result {
 	var body []byte
 	switch r.method {
 	case http.MethodPut, http.MethodPost:
-		body, _ = jsoniter.Marshal(r.params)
+		if b, ok := r.params[bodyObjectParamkey]; ok {
+			body, _ = jsoniter.Marshal(b)
+		} else {
+			body, _ = jsoniter.Marshal(r.params)
+		}
 	default:
 		query := u.Query()
 		for k, v := range r.params {
+			if k == bodyObjectParamkey {
+				continue
+			}
+
 			value := fmt.Sprint(v)
 			query.Add(k, value)
 		}
