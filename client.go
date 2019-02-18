@@ -120,3 +120,7 @@ func (c *Client) PUT(uri string) *Request {
 func (c *Client) POST(uri string) *Request {
 	return c.req(http.MethodPost, uri)
 }
+
+func (c *Client) M(method string, uri string) *Request {
+	return c.req(method, uri)
+}
