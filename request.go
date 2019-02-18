@@ -91,7 +91,7 @@ func (r *Request) Do(ctx context.Context) *Result {
 
 	var body []byte
 	switch r.method {
-	case http.MethodPut, http.MethodPost:
+	case http.MethodPut, http.MethodPost, http.MethodPatch:
 		if b, ok := r.params[bodyObjectParamkey]; ok {
 			body, _ = jsoniter.Marshal(b)
 		} else {
