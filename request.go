@@ -34,11 +34,13 @@ type Request struct {
 	auth Authenticator
 }
 
+// H add key value into headers
 func (r *Request) H(key, value string) *Request {
 	r.headers.Add(key, value)
 	return r
 }
 
+// p add key value into parameters
 func (r *Request) P(key string, value interface{}) *Request {
 	if value != nil {
 		r.params[key] = value
@@ -46,6 +48,12 @@ func (r *Request) P(key string, value interface{}) *Request {
 		delete(r.params, key)
 	}
 
+	return r
+}
+
+// Header overwrite exist headers
+func (r *Request) Header(h http.Header) *Request {
+	r.headers = h
 	return r
 }
 
