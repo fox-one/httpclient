@@ -130,12 +130,12 @@ func (r *Request) Do(ctx context.Context) *Result {
 	request.Header = r.headers
 	request = request.WithContext(ctx)
 	resp, err := r.client.Client().Do(request)
-	result.statusCode, result.status = resp.StatusCode, resp.Status
-
 	if err != nil {
 		result.err = err
 		return result
 	}
+
+	result.statusCode, result.status = resp.StatusCode, resp.Status
 
 	defer resp.Body.Close()
 	result.data, result.err = ioutil.ReadAll(resp.Body)
