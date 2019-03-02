@@ -96,6 +96,7 @@ func (c *Client) req(method, uri string) *Request {
 		uri:     uri,
 		params:  map[string]interface{}{},
 		headers: http.Header{},
+		query:   url.Values{},
 	}
 
 	if c.OnRequest != nil {

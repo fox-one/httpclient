@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 
 	jsoniter "github.com/json-iterator/go"
 )
@@ -30,6 +31,7 @@ type Request struct {
 	uri     string
 	params  map[string]interface{}
 	headers http.Header
+	query   url.Values
 
 	auth Authenticator
 }
@@ -46,6 +48,16 @@ func (r *Request) P(key string, value interface{}) *Request {
 		r.params[key] = value
 	} else {
 		delete(r.params, key)
+	}
+
+	return r
+}
+
+func (r *Request) Q(key string, value interface{}) *Request {
+	if value != nil {
+		r.query.Set(key, fmt.Sprint(value))
+	} else {
+		r.query.Del(key)
 	}
 
 	return r
@@ -97,7 +109,16 @@ func (r *Request) Do(ctx context.Context) *Result {
 		}
 	}
 
+	if query := r.query.Encode(); query != "" {
+		if u.RawQuery == "" {
+			u.RawQuery = query
+		} else {
+			u.RawQuery += "&" + query
+		}
+	}
+
 	var body []byte
+
 	switch r.method {
 	case http.MethodPut, http.MethodPost, http.MethodPatch:
 		if b, ok := r.params[bodyObjectParamkey]; ok {
