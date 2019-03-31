@@ -8,8 +8,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"time"
 
 	jsoniter "github.com/json-iterator/go"
+	log "github.com/sirupsen/logrus"
 )
 
 type AuthPreparer interface {
@@ -158,10 +160,13 @@ func (r *Request) Do(ctx context.Context) *Result {
 
 	request.Header = r.headers
 	request = request.WithContext(ctx)
+	start := time.Now()
 	resp, err := r.client.Client().Do(request)
 
 	if resp != nil {
 		result.statusCode, result.status = resp.StatusCode, resp.Status
+
+		log.Debugf("[%d] %-4s %s %s", resp.StatusCode, r.method, u.String(), time.Since(start))
 	}
 
 	if err != nil {
