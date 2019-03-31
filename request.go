@@ -166,7 +166,7 @@ func (r *Request) Do(ctx context.Context) *Result {
 	if resp != nil {
 		result.statusCode, result.status = resp.StatusCode, resp.Status
 
-		log.Debugf("[%d] %-4s %s %s", resp.StatusCode, r.method, u.String(), time.Since(start))
+		log.Debugf("[httpclient] %-4s %s %d %s", r.method, u.String(), resp.StatusCode, time.Since(start))
 	}
 
 	if err != nil {
