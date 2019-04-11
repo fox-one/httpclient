@@ -128,6 +128,8 @@ func (r *Request) Do(ctx context.Context) *Result {
 		} else {
 			body, _ = jsoniter.Marshal(r.params)
 		}
+
+		r.H("Content-Type", "application/json")
 	default:
 		query := u.Query()
 		for k, v := range r.params {
