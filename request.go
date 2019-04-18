@@ -8,10 +8,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"time"
 
 	jsoniter "github.com/json-iterator/go"
-	log "github.com/sirupsen/logrus"
+)
+
+const (
+	jsonContentType = "application/json"
 )
 
 type AuthPreparer interface {
@@ -22,10 +24,6 @@ type Authenticator interface {
 	Auth(req *Request, method, uri string, body []byte)
 }
 
-const (
-	bodyObjectParamkey = "_httpclient_body_object"
-)
-
 type Request struct {
 	client *Client
 
@@ -34,6 +32,9 @@ type Request struct {
 	params  map[string]interface{}
 	headers http.Header
 	query   url.Values
+
+	body            []byte
+	bodyContentType string
 
 	auth Authenticator
 }
@@ -71,8 +72,20 @@ func (r *Request) Header(h http.Header) *Request {
 	return r
 }
 
-func (r *Request) Body(b interface{}) *Request {
-	return r.P(bodyObjectParamkey, b)
+func (r *Request) Body(b interface{}, contentType ...string) *Request {
+	t := jsonContentType
+	if len(contentType) > 0 {
+		t = contentType[0]
+	}
+
+	if reader, ok := b.(io.Reader); ok {
+		r.body, _ = ioutil.ReadAll(reader)
+	} else {
+		r.body, _ = jsoniter.Marshal(b)
+	}
+
+	r.bodyContentType = t
+	return r
 }
 
 func (r *Request) Auth(auth Authenticator) *Request {
@@ -103,7 +116,7 @@ func (r *Result) Reader() (io.Reader, error) {
 	return bytes.NewReader(r.data), r.err
 }
 
-func (r *Request) Do(ctx context.Context) *Result {
+func (r *Request) HTTPRequest() (*http.Request, error) {
 	u := joinGroup(r.client.base, r.uri)
 	if r.auth != nil {
 		if preparer, ok := r.auth.(AuthPreparer); ok {
@@ -123,20 +136,15 @@ func (r *Request) Do(ctx context.Context) *Result {
 
 	switch r.method {
 	case http.MethodPut, http.MethodPost, http.MethodPatch:
-		if b, ok := r.params[bodyObjectParamkey]; ok {
-			body, _ = jsoniter.Marshal(b)
-		} else {
-			body, _ = jsoniter.Marshal(r.params)
+		if r.body == nil {
+			r.Body(r.params)
 		}
 
-		r.H("Content-Type", "application/json")
+		body = r.body
+		r.H("Content-Type", r.bodyContentType)
 	default:
 		query := u.Query()
 		for k, v := range r.params {
-			if k == bodyObjectParamkey {
-				continue
-			}
-
 			value := fmt.Sprint(v)
 			query.Add(k, value)
 		}
@@ -152,23 +160,32 @@ func (r *Request) Do(ctx context.Context) *Result {
 		r.auth.Auth(r, r.method, uri, body)
 	}
 
-	result := &Result{}
-
 	request, err := http.NewRequest(r.method, u.String(), bytes.NewReader(body))
 	if err != nil {
-		result.err = err
-		return result
+		return nil, err
 	}
 
 	request.Header = r.headers
-	request = request.WithContext(ctx)
-	start := time.Now()
-	resp, err := r.client.Client().Do(request)
+	return request, nil
+}
+
+func (r *Request) Do(ctx context.Context) *Result {
+	result := &Result{}
+	req, err := r.HTTPRequest()
+	if err != nil {
+		result.err = err
+		return result
+	}
+
+	req = req.WithContext(ctx)
+	resp, err := r.client.Client().Do(req)
 
 	if resp != nil {
 		result.statusCode, result.status = resp.StatusCode, resp.Status
+	}
 
-		log.Debugf("[httpclient] %-4s %s %d %s", r.method, u.String(), resp.StatusCode, time.Since(start))
+	if resp.Body != nil {
+		defer resp.Body.Close()
 	}
 
 	if err != nil {
@@ -176,7 +193,6 @@ func (r *Request) Do(ctx context.Context) *Result {
 		return result
 	}
 
-	defer resp.Body.Close()
 	result.data, result.err = ioutil.ReadAll(resp.Body)
 	return result
 }
