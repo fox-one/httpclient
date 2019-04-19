@@ -136,12 +136,14 @@ func (r *Request) HTTPRequest() (*http.Request, error) {
 
 	switch r.method {
 	case http.MethodPut, http.MethodPost, http.MethodPatch:
-		if r.body == nil {
+		if r.body == nil && len(r.params) > 0 {
 			r.Body(r.params)
 		}
 
-		body = r.body
-		r.H("Content-Type", r.bodyContentType)
+		if r.body != nil {
+			body = r.body
+			r.H("Content-Type", r.bodyContentType)
+		}
 	default:
 		query := u.Query()
 		for k, v := range r.params {
