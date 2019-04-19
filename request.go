@@ -145,12 +145,19 @@ func (r *Request) HTTPRequest() (*http.Request, error) {
 			r.H("Content-Type", r.bodyContentType)
 		}
 	default:
-		query := u.Query()
+		query := url.Values{}
 		for k, v := range r.params {
 			value := fmt.Sprint(v)
 			query.Add(k, value)
 		}
-		u.RawQuery = query.Encode()
+
+		if raw := query.Encode(); raw != "" {
+			if u.RawQuery == "" {
+				u.RawQuery = raw
+			} else {
+				u.RawQuery += "&" + raw
+			}
+		}
 	}
 
 	if r.auth != nil {
