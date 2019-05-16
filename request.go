@@ -94,10 +94,16 @@ func (r *Request) Auth(auth Authenticator) *Request {
 }
 
 type Result struct {
+	req *Request
+
 	status     string
 	statusCode int
 	data       []byte
 	err        error
+}
+
+func (r *Result) String() string {
+	return fmt.Sprintf("%s %s %s", r.req.method, r.req.uri, r.status)
 }
 
 func (r *Result) Err() error {
@@ -179,7 +185,7 @@ func (r *Request) HTTPRequest() (*http.Request, error) {
 }
 
 func (r *Request) Do(ctx context.Context) *Result {
-	result := &Result{}
+	result := &Result{req: r}
 	req, err := r.HTTPRequest()
 	if err != nil {
 		result.err = err
@@ -191,10 +197,10 @@ func (r *Request) Do(ctx context.Context) *Result {
 
 	if resp != nil {
 		result.statusCode, result.status = resp.StatusCode, resp.Status
-	}
 
-	if resp.Body != nil {
-		defer resp.Body.Close()
+		if resp.Body != nil {
+			defer resp.Body.Close()
+		}
 	}
 
 	if err != nil {
