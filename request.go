@@ -3,6 +3,7 @@ package httpclient
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -100,6 +101,14 @@ type Result struct {
 	statusCode int
 	data       []byte
 	err        error
+}
+
+func (r *Result) IsSuccess() bool {
+	return r.statusCode > 199 && r.statusCode < 300
+}
+
+func (r *Result) StatusErr() error {
+	return errors.New(r.status)
 }
 
 func (r *Result) String() string {
